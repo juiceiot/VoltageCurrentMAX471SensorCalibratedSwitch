@@ -21,19 +21,14 @@ float maxCurrent = 3;
 bool switchIsOn = 0;
 long switchStartTime = 0;
 long lastSwitchFinishTime = 0;
-int switchBurstOnTime = 3;
-int switchBurstOffTime = 5;
 
-int switchStatus = SWITCH_STATUS_AUTO;
+int switchMode = SWITCH_MODE_AUTO;
 
 #define minVoltageIsSetEEPROMFlagAddress 20
 #define minVoltageEEPROMAddress 21
 
-#define switchBurstOnTimeIsSetEEPROMFlagAddress 26
-#define switchBurstOnTimeEEPROMAddress 27
-
-#define switchBurstOffTimeIsSetEEPROMFlagAddress 33
-#define switchBurstOffTimeEEPROMAddress 34
+#define maxVoltageIsSetEEPROMFlagAddress 24
+#define maxVoltageEEPROMAddress 25
 
 /* Setup */
 void setupPowerSwitch()
@@ -71,7 +66,7 @@ void adjustPowerSwitch()
     Serial.println("Irrigating (if needed)");
   }
 
-  if (switchStatus == SWITCH_STATUS_AUTO)
+  if (switchMode == SWITCH_MODE_AUTO)
   {
     bool readingHasBeenTaken = lastVoltageCurrentMAX471SensorReadingTime > 0;
     bool voltageIsAboveMinimum = voltageRaw >= minVoltage;
@@ -87,7 +82,7 @@ void adjustPowerSwitch()
       switchOn();
     }
   }
-  else if(switchStatus == SWITCH_STATUS_ON)
+  else if(switchMode == SWITCH_MODE_ON)
   {
     if (!switchIsOn)
       switchOn();
@@ -115,7 +110,7 @@ void switchOff()
   lastSwitchFinishTime = millis();
 }
 
-void setSwitchStatus(char* msg)
+void setSwitchMode(char* msg)
 {
   int length = strlen(msg);
 
@@ -131,22 +126,20 @@ void setSwitchStatus(char* msg)
 //    Serial.println("Value:");
 //    Serial.println(value);
 
-    setSwitchStatus(value);
+    setSwitchMode(value);
   }
 }
 
-void setSwitchStatus(int newStatus)
+void setSwitchMode(int newStatus)
 {
-  switchStatus = newStatus;
+  switchMode = newStatus;
 }
 
 void setMinVoltage(char* msg)
 {
   int length = strlen(msg);
 
-  if (length == 1)
-    setMinVoltageToCurrent();
-  else
+  if (length > 1)
   {
     int value = readInt(msg, 1, length-1);
 
@@ -170,13 +163,6 @@ void setMinVoltage(int newMinVoltage)
   EEPROM.write(minVoltageEEPROMAddress, newMinVoltage);
   
   setMinVoltageIsSetEEPROMFlag();
-}
-
-void setMinVoltageToCurrent()
-{
-  lastVoltageCurrentMAX471SensorReadingTime = 0;
-  takeVoltageCurrentMAX471SensorReading();
-  setMinVoltage(voltageCalibrated);
 }
 
 int getMinVoltage()
@@ -210,122 +196,68 @@ void setMinVoltageIsSetEEPROMFlag()
   if (EEPROM.read(minVoltageIsSetEEPROMFlagAddress) != 99)
     EEPROM.write(minVoltageIsSetEEPROMFlagAddress, 99);
 }
-
-
-void setSwitchBurstOnTime(char* msg)
+void setMaxVoltage(char* msg)
 {
   int length = strlen(msg);
 
-  if (length >= 2)
+  if (length > 1)
   {
-    long value = readInt(msg, 1, length-1);
+    int value = readInt(msg, 1, length-1);
 
 //    Serial.println("Value:");
 //    Serial.println(value);
 
-    setSwitchBurstOnTime(value);
+    setMaxVoltage(value);
   }
 }
 
-void setSwitchBurstOnTime(long newSwitchBurstOnTime)
+void setMaxVoltage(int newMaxVoltage)
 {
-  switchBurstOnTime = newSwitchBurstOnTime;
+  maxVoltage = newMaxVoltage;
 
   if (isDebugMode)
   {
-    Serial.print("Setting switchBurstOnTime to EEPROM: ");
-    Serial.println(switchBurstOnTime);
+    Serial.print("Setting maxVoltage to EEPROM: ");
+    Serial.println(maxVoltage);
   }
 
-  EEPROMWriteLong(switchBurstOnTimeEEPROMAddress, switchBurstOnTime);
-
-  setSwitchBurstOnTimeIsSetEEPROMFlag();
+  EEPROM.write(maxVoltageEEPROMAddress, newMaxVoltage);
+  
+  setMaxVoltageIsSetEEPROMFlag();
 }
 
-long getSwitchBurstOnTime()
+int getMaxVoltage()
 {
-  long value = EEPROMReadLong(switchBurstOnTimeEEPROMAddress);
+  int value = EEPROM.read(maxVoltageEEPROMAddress);
 
-  if (value == 0
-      || value == 255)
-    return switchBurstOnTime;
+  if (value <= 0
+      || value >= 100)
+    return maxVoltage;
   else
   {
-    int switchBurstOnTime = value;
+    int maxVoltage = value; // Must multiply by 4 to get the original value
 
     if (isDebugMode)
     {
-      Serial.print("SwitchBurstOnTime found in EEPROM: ");
-      Serial.println(switchBurstOnTime);
+      Serial.print("MaxVoltage found in EEPROM: ");
+      Serial.println(maxVoltage);
     }
 
-    return switchBurstOnTime;
+    return maxVoltage;
   }
 }
 
-void setSwitchBurstOnTimeIsSetEEPROMFlag()
-{
-  if (EEPROM.read(switchBurstOnTimeIsSetEEPROMFlagAddress) != 99)
-    EEPROM.write(switchBurstOnTimeIsSetEEPROMFlagAddress, 99);
-}
-
-
-void setSwitchBurstOffTime(char* msg)
-{
-  int length = strlen(msg);
-
-  if (length >= 2)
-  {
-    long value = readInt(msg, 1, length-1);
-
-//    Serial.println("Value:");
-//    Serial.println(value);
-
-    setSwitchBurstOffTime(value);
-  }
-}
-
-void setSwitchBurstOffTime(long newSwitchBurstOffTime)
+void setMaxVoltageIsSetEEPROMFlag()
 {
   if (isDebugMode)
   {
-    Serial.print("Setting switch burst off time to EEPROM: ");
-    Serial.println(newSwitchBurstOffTime);
+    Serial.print("Setting EEPROM 'maxVoltage is set flag'");
   }
 
-  EEPROMWriteLong(switchBurstOffTimeEEPROMAddress, newSwitchBurstOffTime);
-
-  setSwitchBurstOffTimeIsSetEEPROMFlag();
-
-  switchBurstOffTime = newSwitchBurstOffTime;
+  if (EEPROM.read(maxVoltageIsSetEEPROMFlagAddress) != 99)
+    EEPROM.write(maxVoltageIsSetEEPROMFlagAddress, 99);
 }
 
-long getSwitchBurstOffTime()
-{
-
-  if (EEPROM.read(switchBurstOffTimeIsSetEEPROMFlagAddress) == 99)
-  {
-    long value = EEPROMReadLong(switchBurstOffTimeEEPROMAddress);
-    
-    if (value < 0 || value > 9999)
-    {
-      value = switchBurstOffTime;
-    }
-
-//    Serial.println("Value:");
-//    Serial.println(value);
-
-    return value;
-  }
-  else
-    return switchBurstOffTime;
-}
-
-void setSwitchBurstOffTimeIsSetEEPROMFlag()
-{
-  if (EEPROM.read(switchBurstOffTimeIsSetEEPROMFlagAddress) != 99)
-    EEPROM.write(switchBurstOffTimeIsSetEEPROMFlagAddress, 99);
-}
 
 /* Restore defaults */
 void restoreDefaultPowerSwitchSettings()
@@ -333,40 +265,17 @@ void restoreDefaultPowerSwitchSettings()
   Serial.println("Reset default settings");
 
   restoreDefaultMinVoltage();
-  restoreDefaultSwitchBurstOnTime();
 }
 
 void restoreDefaultMinVoltage()
 {
   Serial.println("Reset minVoltage");
 
-  removeMinVoltageEEPROMIsSetFlag();
+  removeEEPROMFlag(minVoltageIsSetEEPROMFlagAddress);
 
   minVoltage = 30;
 
   setMinVoltage(minVoltage);
-}
-
-void restoreDefaultSwitchBurstOnTime()
-{
-  Serial.println("Reset switch burst on time");
-
-  removeSwitchBurstOnTimeEEPROMIsSetFlag();
-
-  switchBurstOnTime = 3;
-
-  setSwitchBurstOnTime(switchBurstOnTime);
-}
-
-void restoreDefaultSwitchBurstOffTime()
-{
-  Serial.println("Reset switch burst off time");
-
-  removeSwitchBurstOffTimeEEPROMIsSetFlag();
-
-  switchBurstOffTime = 5;
-
-  setSwitchBurstOffTime(switchBurstOffTime);
 }
 
 void removeMinVoltageEEPROMIsSetFlag()
@@ -374,7 +283,3 @@ void removeMinVoltageEEPROMIsSetFlag()
     EEPROM.write(minVoltageIsSetEEPROMFlagAddress, 0);
 }
 
-void removeSwitchBurstOnTimeEEPROMIsSetFlag()
-{
-    EEPROM.write(switchBurstOnTimeIsSetEEPROMFlagAddress, 0);
-}

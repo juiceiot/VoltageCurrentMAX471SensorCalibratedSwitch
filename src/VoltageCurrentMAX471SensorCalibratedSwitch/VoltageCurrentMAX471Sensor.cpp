@@ -83,16 +83,8 @@ void takeVoltageCurrentMAX471SensorReading()
       voltageRaw = ((rawVoltageReading * vcc) / 1023) * vcc ;
       currentRaw = (rawCurrentReading * vcc) / 1023;
       
-/*      voltageRaw = getAverageVoltageCurrentMAX471SensorReading();
-
-      voltageCalibrated = calculateSoilMoistureLevel(voltageRaw);
-
-      if (voltageCalibrated < 0)
-        voltageCalibrated = 0;
-
-      if (voltageCalibrated > 100)
-        voltageCalibrated = 100;
-*/
+      voltageCalibrated = voltageRaw;
+      currentCalibrated = currentRaw;
 
       voltageCurrentMAX471SensorReadingHasBeenTaken = true;
     }
@@ -200,11 +192,6 @@ void setEEPROMVoltageCurrentMAX471SensorReadingIntervalIsSetFlag()
 {
   if (EEPROM.read(voltageCurrentMAX471SensorReadIntervalIsSetFlagAddress) != 99)
     EEPROM.write(voltageCurrentMAX471SensorReadIntervalIsSetFlagAddress, 99);
-}
-
-void removeEEPROMVoltageCurrentMAX471SensorReadingIntervalIsSetFlag()
-{
-    EEPROM.write(voltageCurrentMAX471SensorReadIntervalIsSetFlagAddress, 0);
 }
 
 /* Calibration */
@@ -367,10 +354,10 @@ void restoreDefaultVoltageCurrentMAX471SensorSettings()
 
 void restoreDefaultVoltageCurrentMAX471SensorReadingIntervalSettings()
 {
-  removeEEPROMVoltageCurrentMAX471SensorReadingIntervalIsSetFlag();
+  removeEEPROMFlag(voltageCurrentMAX471SensorReadIntervalIsSetFlagAddress);
 
-  voltageCurrentMAX471SensorReadingIntervalInSeconds = 5;
-  serialOutputIntervalInSeconds = 5;
+  voltageCurrentMAX471SensorReadingIntervalInSeconds = 1;
+  serialOutputIntervalInSeconds = 1;
 
   setVoltageCurrentMAX471SensorReadingInterval(voltageCurrentMAX471SensorReadingIntervalInSeconds);
 }

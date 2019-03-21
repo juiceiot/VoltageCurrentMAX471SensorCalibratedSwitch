@@ -9,7 +9,7 @@
 #define SERIAL_MODE_CSV 1
 #define SERIAL_MODE_QUERYSTRING 2
 
-#define VERSION "1-0-0-52"
+#define VERSION "1-0-0-1"
 
 int serialMode = SERIAL_MODE_CSV;
 
@@ -70,38 +70,20 @@ void checkCommand()
 
     switch (letter)
     {
-      case 'P':
-        setSwitchStatus(msg);
+      case 'M':
+        setSwitchMode(msg);
         break;
-      case 'T':
+      case 'U':
         setMinVoltage(msg);
         break;
-      case 'D':
-        setDrySoilMoistureCalibrationValue(msg);
-        break;
-      case 'W':
-        setWetSoilMoistureCalibrationValue(msg);
+      case 'Y':
+        setMaxVoltage(msg);
         break;
       case 'V':
         setVoltageCurrentMAX471SensorReadingInterval(msg);
         break;
       case 'X':
         restoreDefaultSettings();
-        break;
-      case 'N':
-        Serial.println("Turning switch on");
-        switchStatus = SWITCH_STATUS_ON;
-        switchOn();
-        break;
-      case 'F':
-        Serial.println("Turning switch off");
-        switchStatus = SWITCH_STATUS_OFF;
-        switchOff();
-        break;
-      case 'A':
-        Serial.println("Turning switch to auto");
-        switchStatus = SWITCH_STATUS_AUTO;
-        adjustPowerSwitch();
         break;
       case 'Z':
         Serial.println("Toggling IsDebug");
@@ -152,11 +134,14 @@ void serialPrintData()
       Serial.print("CC:");
       Serial.print(currentCalibrated);
       Serial.print(";");
-      Serial.print("T:");
+      Serial.print("U:");
       Serial.print(minVoltage);
       Serial.print(";");
-      Serial.print("S:");
-      Serial.print(switchStatus);
+      Serial.print("Y:");
+      Serial.print(maxVoltage);
+      Serial.print(";");
+      Serial.print("M:");
+      Serial.print(switchMode);
       Serial.print(";");
       Serial.print("I:");
       Serial.print(voltageCurrentMAX471SensorReadingIntervalInSeconds);
@@ -166,15 +151,6 @@ void serialPrintData()
       Serial.print(";");
       Serial.print("SO:"); // Switch on
       Serial.print(switchIsOn);
-      Serial.print(";");
-      //Serial.print("SSPO:"); // Seconds since switch on
-      //Serial.print((millis() - lastSwitchFinishTime) / 1000);
-      //Serial.print(";");
-      Serial.print("D:"); // Dry calibration value
-      Serial.print(drySoilMoistureCalibrationValue);
-      Serial.print(";");
-      Serial.print("W:"); // Wet calibration value
-      Serial.print(wetSoilMoistureCalibrationValue);
       Serial.print(";");
       Serial.print("Z:");
       Serial.print(VERSION);
@@ -195,17 +171,11 @@ void serialPrintData()
       Serial.print("waterNeeded=");
       Serial.print(voltageCalibrated < minVoltage);
       Serial.print("&");
-      Serial.print("switchStatus=");
-      Serial.print(switchStatus);
+      Serial.print("switchMode=");
+      Serial.print(switchMode);
       Serial.print("&");
       Serial.print("readingInterval=");
       Serial.print(voltageCurrentMAX471SensorReadingIntervalInSeconds);
-      Serial.print("&");
-      Serial.print("switchBurstOnTime=");
-      Serial.print(switchBurstOnTime);
-      Serial.print("&");
-      Serial.print("switchBurstOffTime=");
-      Serial.print(switchBurstOffTime);
       Serial.print("&");
       Serial.print("switchOn=");
       Serial.print(switchIsOn);
